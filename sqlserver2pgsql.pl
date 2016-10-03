@@ -178,7 +178,7 @@ my %types = ('int'              => 'int',
              'datetime2'        => 'timestamp',
              'smalldatetime'    => 'timestamp',
              'time'             => 'time',
-             'timestamp'        => 'timestamp',
+             'timestamp'        => 'bytea',
              'datetimeoffset'   => 'timestamp with time zone',
              'image'            => 'bytea',
              'binary'           => 'bytea',
@@ -865,8 +865,10 @@ sub generate_kettle
     # tables where we cannot do incremental (no PK...)
     open JOBFILE, ">$dir/migration.kjb"
         or die "Cannot write to $dir/migration.kjb";
+	binmode(JOBFILE,":utf8");
     open INCFILE, ">$dir/incremental.kjb"
         or die "Cannot write to $dir/incremental.kjb";
+	binmode(INCFILE,":utf8");
     my $real_dir     = getcwd;
     my $entries      = '';
     my $incentries   = '';
@@ -1180,9 +1182,9 @@ sub parse_dump
         $data .= $line;
     }
     close $file;
-
+	
     # We now ask guess...
-    my $decoder = guess_encoding($data, qw/iso8859-15/);
+    my $decoder = guess_encoding($data, qw/utf8/); #qw/iso8859-15/);
     die $decoder unless ref($decoder);
 
     # If we got to here, it means we have found the right decoder
@@ -2727,7 +2729,6 @@ BEGIN
     <data_tablespace/>
     <index_tablespace/>
     <attributes>
-      <attribute><code>EXTRA_OPTION_POSTGRESQL.reWriteBatchedInserts</code><attribute>true</attribute></attribute>
       <attribute><code>FORCE_IDENTIFIERS_TO_LOWERCASE</code><attribute>N</attribute></attribute>
       <attribute><code>FORCE_IDENTIFIERS_TO_UPPERCASE</code><attribute>N</attribute></attribute>
       <attribute><code>IS_CLUSTERED</code><attribute>N</attribute></attribute>

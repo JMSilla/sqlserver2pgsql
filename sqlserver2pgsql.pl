@@ -48,7 +48,7 @@ our $use_pk_if_possible=0;
 our $requires_postgis=0;
 
 # These three variables are loaded in the BEGIN block at the end of this file (they are very big
-my $template; 
+my $template;
 my $template_lob;
 my $incremental_template;
 my $incremental_template_sortable_pk;
@@ -141,7 +141,7 @@ sub convert_numeric_to_int
 
 # This is a list of the types that require a cast to be imported in kettle
 # C = using CREATE CAST
-# S = updating system catalog 
+# S = updating system catalog
 my %types_to_cast = ('uuid'  => 'C','date'  => 'C','timestamp with time zone' => 'C','xml'  => 'S');
 
 # This sub adds a cast (if not defined already) if
@@ -248,7 +248,7 @@ sub convert_type
         # Special case. This is an internal type, and should seldom be used in production. Converted to varchar(128)
         $rettype='varchar(128)';
     }
-    
+
     # We special case also the geometry and geography data types
     elsif ( $sqlstype =~ /^geography$|^geometry$/i )
     {
@@ -428,7 +428,7 @@ sub format_identifier_cols_index
 }
 
 # This one will try to convert what can obviously be converted from transact to PG
-# Things such as getdate() which can become CURRENT_TIMESTAMP 
+# Things such as getdate() which can become CURRENT_TIMESTAMP
 sub convert_transactsql_code
 {
 	my ($code)=@_;
@@ -541,7 +541,7 @@ sub next_col_pos
         unless ($norelabel_dbo)
         {
             $relabel_schemas{'dbo'}='public';
-        } 
+        }
         # dbo can be overwritten in relabel_schema (the user will probably forget to deactivate the relabel).
         # so we do the real relabeling after the norelabel_dbo, to overwrite
         if (defined $relabel_schemas)
@@ -556,7 +556,7 @@ sub next_col_pos
                 $relabel_schemas{$pair[0]}=$pair[1];
             }
         }
-        
+
     }
 
 
@@ -717,7 +717,7 @@ sub generate_kettle
             {
                 $newincrementaltemplate=$incremental_template;
             }
-            
+
 
             # Build the column list of the table to put into the SQL Server query
             my @colsdef;
@@ -797,7 +797,7 @@ sub generate_kettle
 		$keys.="<key>$pk</key>\n";
 	      }
 	      $newincrementaltemplate =~ s/__KEYS_MERGE__/$keys/g;
-	    
+
 	      my $sortkeys='';
               my $synckeys='';
 	      foreach my $pk(@pk)
@@ -814,7 +814,7 @@ sub generate_kettle
 	      $newincrementaltemplate =~ s/__SORT_KEYS_SQLSERVER__/$sortkeys/g;
 	      $newincrementaltemplate =~ s/__SORT_KEYS_PG__/$sortkeys/g;
               $newincrementaltemplate =~ s/__KEYS_SYNC__/$synckeys/g;
-	      
+
 	      # We also need to tell the merge step to compare all columns
 	      my $valuesmerge='';
               my $valuessync='';
@@ -836,13 +836,13 @@ sub generate_kettle
               $newincrementaltemplate =~ s/__VALUES_MERGE__/$valuesmerge/g;
               $newincrementaltemplate =~ s/__VALUES_SYNC__/$valuessync/g;
 
-	      
+
 	      # Produce the incremental transformation
 	      open FILE, ">$dir/incremental-$schema-$table.ktr"
 		  or die "Cannot write to $dir/incremental-$schema-$table.ktr";
 	      binmode(FILE,":utf8");
 	      print FILE $newincrementaltemplate;
-	      close FILE;	      
+	      close FILE;
 	    }
             else
             {
@@ -994,7 +994,7 @@ sub generate_kettle
             $afterscript.= "ALTER TABLE " . format_identifier($schema) . '.' . format_identifier($table) . " ENABLE TRIGGER ALL;\n";
         }
     }
- 
+
 
     # This is for the SQL Scripts. We also need to specify the PG connection
     $job_header =~ s/__SQL_SCRIPT_INIT__/$beforescript/g;
@@ -1085,7 +1085,7 @@ sub add_column_to_table
         if ($coltype eq 'xml')
         {
             $colqual = undef
-                ; # ignoring sql server xml schema since its not supported in pg 
+                ; # ignoring sql server xml schema since its not supported in pg
         }
         elsif ($colqual eq '(max)')
         {
@@ -1206,7 +1206,7 @@ sub parse_dump
             TABLE: while (my $line = read_and_clean($file))
             {
                 # Here is a col definition.
-		# We ignore ROWGUIDCOL as it has no meaning in PostgreSQL and cannot be emulated 
+		# We ignore ROWGUIDCOL as it has no meaning in PostgreSQL and cannot be emulated
 		# (it makes it possible to do a select xxx WHERE $ROWGUID, without knowing the column name, typical microsoft stuff :( )
 		# To make matters even worse, they seem to systematically add a space after it :)
                 if ($line =~
@@ -1572,7 +1572,7 @@ EOF
 			$def.=$idx;
 		}
 		print STDERR "This spatial index won't be migrated:\n$def\n";
-		
+
 	}
 
         # Added table columns… this seems to appear in SQL Server when some columns have ANSI padding, and some not.
@@ -1612,7 +1612,7 @@ EOF
                 $constraint->{NAME} = $3;
             }
 
-            
+
             CONS: while (my $consline= read_and_clean($file))
             {
                 next if ($consline =~ /^\($/);
@@ -1701,16 +1701,17 @@ EOF
         # FK constraint. It's multi line, we have to look for references, and what to do on update, delete, etc (I have only seen delete cascade for now)
         # Constraint name is optionnal
         elsif ($line =~
-            /^ALTER TABLE \[(.*)\]\.\[(.*)\]\s+WITH (?:NO)?CHECK ADD(?:\s+CONSTRAINT \[(.*)\])? FOREIGN KEY\((.*?)\)/
+            /^ALTER TABLE \[(.*)\]\.\[(.*)\]\s+WITH (NO)?CHECK ADD(?:\s+CONSTRAINT \[(.*)\])? FOREIGN KEY\((.*?)\)/
             )
         {
             # This is a FK definition. We have the foreign table definition in next line.
             my $constraint;
+            my $nocheck = ($3 eq "NO");
             my $table  = $2;
             my $schema = relabel_schemas($1);
-            my $consname= $3;
+            my $consname= $4;
             $constraint->{TYPE}        = 'FK';
-            my @local_cols = split (/\s*,\s*/,$4); # Split around the comma. There may be whitespaces
+            my @local_cols = split (/\s*,\s*/,$5); # Split around the comma. There may be whitespaces
             @local_cols=map{s/^\[//;s/]$//;$_;} @local_cols; # Remove the brackets around the columns
             $constraint->{LOCAL_COLS}=\@local_cols;
             $constraint->{LOCAL_TABLE} = $2;
@@ -1723,9 +1724,17 @@ EOF
             {
                 if ($fk =~ /^GO/)
                 {
-                    push @{$objects->{SCHEMAS}->{$schema}->{'TABLES'}->{$table}
-                            ->{CONSTRAINTS}}, ($constraint);
+                    if (!$nocheck)
+                    {
+                      push @{$objects->{SCHEMAS}->{$schema}->{'TABLES'}->{$table}
+                              ->{CONSTRAINTS}}, ($constraint);
+                    }
+
                     next MAIN;
+                }
+                elsif ($nocheck)
+                {
+                  next;
                 }
                 elsif ($fk =~ /^REFERENCES \[(.*)\]\.\[(.*)\] \((.*?)\)/)
                 {
@@ -1750,10 +1759,10 @@ EOF
                 {
                     $constraint->{ON_UPD_CASC} = 1;
                 }
-		elsif ($fk =~ /^NOT FOR REPLICATION$/)
-		{
-			next; # We don't care for this, it has no meaning for PostgreSQL
-		}
+            		elsif ($fk =~ /^NOT FOR REPLICATION$/)
+            		{
+            			next; # We don't care for this, it has no meaning for PostgreSQL
+            		}
                 else
                 {
                     die "Cannot parse $fk $., in a FK. This is a bug";
@@ -1909,7 +1918,7 @@ EOF
         {
             next;
         }
-        
+
         # Ignore xml schema collections since they are not supported in pg
         elsif ($line =~ /^CREATE XML SCHEMA COLLECTION/)
         {
@@ -1919,7 +1928,7 @@ EOF
         elsif ($line =~ /^ALTER XML SCHEMA COLLECTION/)
         {
             next;
-        }        
+        }
 
         # Ignore existence tests… how could the object already exist anyway ? For now, only seen for views
         elsif ($line =~ /^IF NOT EXISTS/)
@@ -1985,7 +1994,7 @@ EOF
           {
             $line =read_and_clean($file);
           }
-          
+
           next;
         }
 
@@ -2040,7 +2049,7 @@ sub generate_schema
     {
         print BEFORE "CREATE EXTENSION IF NOT EXISTS citext;\n";
     }
-    
+
     # Do we require PostGIS ?
     if ($requires_postgis)
     {
@@ -2067,7 +2076,7 @@ sub generate_schema
     # The tables, columns, etc... will be created in the before script, so there is no dependancy
     # problem with constraints, that will be in the after script, except foreign keys which depend on unique indexes
     # We have to do all domains and types before all tables
-    # Don't care for dependancy 
+    # Don't care for dependancy
     while (my ($schema, $refschema) = each %{$objects->{SCHEMAS}})
     {
         # The user-defined types (domains, etc)
@@ -2209,7 +2218,7 @@ sub generate_schema
                 print AFTER $idxdef;
             }
         }
-    }    
+    }
     # Other constraints
     while (my ($schema, $refschema) = each %{$objects->{SCHEMAS}})
     {
@@ -3356,28 +3365,28 @@ EOF
     $incremental_template= <<EOF;
 <transformation>
   <info>
-    <name>migration__sqlserver_table_name__</name>                                                                                                                                                                                                        
-    <description/>                                                                                                                                                                                                                           
-    <extended_description/>                                                                                                                                                                                                                  
-    <trans_version/>                                                                                                                                                                                                                         
-    <trans_type>Normal</trans_type>                                                                                                                                                                                                          
-    <trans_status>0</trans_status>                                                                                                                                                                                                           
-    <directory>&#47;</directory>                                                                                                                                                                                                             
-    <parameters>                                                                                                                                                                                                                             
-    </parameters>                                                                                                                                                                                                                            
-    <log>                                                                                                                                                                                                                                    
-<trans-log-table><connection/>                                                                                                                                                                                                               
-<schema/>                                                                                                                                                                                                                                    
-<table/>                                                                                                                                                                                                                                     
-<size_limit_lines/>                                                                                                                                                                                                                          
-<interval/>                                                                                                                                                                                                                                  
-<timeout_days/>                                                                                                                                                                                                                              
-<field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>CHANNEL_ID</id><enabled>Y</enabled><name>CHANNEL_ID</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STATUS</id><enabled>Y</enabled><name>STATUS</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name><subject/></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name><subject/></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name><subject/></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name><subject/></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name><subject/></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name><subject/></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>STARTDATE</id><enabled>Y</enabled><name>STARTDATE</name></field><field><id>ENDDATE</id><enabled>Y</enabled><name>ENDDATE</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>DEPDATE</id><enabled>Y</enabled><name>DEPDATE</name></field><field><id>REPLAYDATE</id><enabled>Y</enabled><name>REPLAYDATE</name></field><field><id>LOG_FIELD</id><enabled>Y</enabled><name>LOG_FIELD</name></field></trans-log-table>                                                     
-<perf-log-table><connection/>                                                                                                                                                                                                                
-<schema/>                                                                                                                                                                                                                                    
-<table/>                                                                                                                                                                                                                                     
-<interval/>                                                                                                                                                                                                                                  
-<timeout_days/>                                                                                                                                                                                                                              
+    <name>migration__sqlserver_table_name__</name>
+    <description/>
+    <extended_description/>
+    <trans_version/>
+    <trans_type>Normal</trans_type>
+    <trans_status>0</trans_status>
+    <directory>&#47;</directory>
+    <parameters>
+    </parameters>
+    <log>
+<trans-log-table><connection/>
+<schema/>
+<table/>
+<size_limit_lines/>
+<interval/>
+<timeout_days/>
+<field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>CHANNEL_ID</id><enabled>Y</enabled><name>CHANNEL_ID</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STATUS</id><enabled>Y</enabled><name>STATUS</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name><subject/></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name><subject/></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name><subject/></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name><subject/></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name><subject/></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name><subject/></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>STARTDATE</id><enabled>Y</enabled><name>STARTDATE</name></field><field><id>ENDDATE</id><enabled>Y</enabled><name>ENDDATE</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>DEPDATE</id><enabled>Y</enabled><name>DEPDATE</name></field><field><id>REPLAYDATE</id><enabled>Y</enabled><name>REPLAYDATE</name></field><field><id>LOG_FIELD</id><enabled>Y</enabled><name>LOG_FIELD</name></field></trans-log-table>
+<perf-log-table><connection/>
+<schema/>
+<table/>
+<interval/>
+<timeout_days/>
 <field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>SEQ_NR</id><enabled>Y</enabled><name>SEQ_NR</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STEPNAME</id><enabled>Y</enabled><name>STEPNAME</name></field><field><id>STEP_COPY</id><enabled>Y</enabled><name>STEP_COPY</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>INPUT_BUFFER_ROWS</id><enabled>Y</enabled><name>INPUT_BUFFER_ROWS</name></field><field><id>OUTPUT_BUFFER_ROWS</id><enabled>Y</enabled><name>OUTPUT_BUFFER_ROWS</name></field></perf-log-table>
 <channel-log-table><connection/>
 <schema/>
@@ -3719,7 +3728,7 @@ __SORT_KEYS_SQLSERVER__
            <schema_name/>
            </partitioning>
     <connection>__postgres_db__</connection>
-    <commit>100</commit> 
+    <commit>100</commit>
     <tablename_in_field>N</tablename_in_field>
     <tablename_field/>
     <use_batch>N</use_batch>
@@ -3783,28 +3792,28 @@ EOF
     $incremental_template_sortable_pk= <<EOF;
 <transformation>
   <info>
-    <name>migration__sqlserver_table_name__</name>                                                                                                                                                                                                        
-    <description/>                                                                                                                                                                                                                           
-    <extended_description/>                                                                                                                                                                                                                  
-    <trans_version/>                                                                                                                                                                                                                         
-    <trans_type>Normal</trans_type>                                                                                                                                                                                                          
-    <trans_status>0</trans_status>                                                                                                                                                                                                           
-    <directory>&#47;</directory>                                                                                                                                                                                                             
-    <parameters>                                                                                                                                                                                                                             
-    </parameters>                                                                                                                                                                                                                            
-    <log>                                                                                                                                                                                                                                    
-<trans-log-table><connection/>                                                                                                                                                                                                               
-<schema/>                                                                                                                                                                                                                                    
-<table/>                                                                                                                                                                                                                                     
-<size_limit_lines/>                                                                                                                                                                                                                          
-<interval/>                                                                                                                                                                                                                                  
-<timeout_days/>                                                                                                                                                                                                                              
-<field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>CHANNEL_ID</id><enabled>Y</enabled><name>CHANNEL_ID</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STATUS</id><enabled>Y</enabled><name>STATUS</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name><subject/></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name><subject/></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name><subject/></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name><subject/></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name><subject/></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name><subject/></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>STARTDATE</id><enabled>Y</enabled><name>STARTDATE</name></field><field><id>ENDDATE</id><enabled>Y</enabled><name>ENDDATE</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>DEPDATE</id><enabled>Y</enabled><name>DEPDATE</name></field><field><id>REPLAYDATE</id><enabled>Y</enabled><name>REPLAYDATE</name></field><field><id>LOG_FIELD</id><enabled>Y</enabled><name>LOG_FIELD</name></field></trans-log-table>                                                     
-<perf-log-table><connection/>                                                                                                                                                                                                                
-<schema/>                                                                                                                                                                                                                                    
-<table/>                                                                                                                                                                                                                                     
-<interval/>                                                                                                                                                                                                                                  
-<timeout_days/>                                                                                                                                                                                                                              
+    <name>migration__sqlserver_table_name__</name>
+    <description/>
+    <extended_description/>
+    <trans_version/>
+    <trans_type>Normal</trans_type>
+    <trans_status>0</trans_status>
+    <directory>&#47;</directory>
+    <parameters>
+    </parameters>
+    <log>
+<trans-log-table><connection/>
+<schema/>
+<table/>
+<size_limit_lines/>
+<interval/>
+<timeout_days/>
+<field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>CHANNEL_ID</id><enabled>Y</enabled><name>CHANNEL_ID</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STATUS</id><enabled>Y</enabled><name>STATUS</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name><subject/></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name><subject/></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name><subject/></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name><subject/></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name><subject/></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name><subject/></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>STARTDATE</id><enabled>Y</enabled><name>STARTDATE</name></field><field><id>ENDDATE</id><enabled>Y</enabled><name>ENDDATE</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>DEPDATE</id><enabled>Y</enabled><name>DEPDATE</name></field><field><id>REPLAYDATE</id><enabled>Y</enabled><name>REPLAYDATE</name></field><field><id>LOG_FIELD</id><enabled>Y</enabled><name>LOG_FIELD</name></field></trans-log-table>
+<perf-log-table><connection/>
+<schema/>
+<table/>
+<interval/>
+<timeout_days/>
 <field><id>ID_BATCH</id><enabled>Y</enabled><name>ID_BATCH</name></field><field><id>SEQ_NR</id><enabled>Y</enabled><name>SEQ_NR</name></field><field><id>LOGDATE</id><enabled>Y</enabled><name>LOGDATE</name></field><field><id>TRANSNAME</id><enabled>Y</enabled><name>TRANSNAME</name></field><field><id>STEPNAME</id><enabled>Y</enabled><name>STEPNAME</name></field><field><id>STEP_COPY</id><enabled>Y</enabled><name>STEP_COPY</name></field><field><id>LINES_READ</id><enabled>Y</enabled><name>LINES_READ</name></field><field><id>LINES_WRITTEN</id><enabled>Y</enabled><name>LINES_WRITTEN</name></field><field><id>LINES_UPDATED</id><enabled>Y</enabled><name>LINES_UPDATED</name></field><field><id>LINES_INPUT</id><enabled>Y</enabled><name>LINES_INPUT</name></field><field><id>LINES_OUTPUT</id><enabled>Y</enabled><name>LINES_OUTPUT</name></field><field><id>LINES_REJECTED</id><enabled>Y</enabled><name>LINES_REJECTED</name></field><field><id>ERRORS</id><enabled>Y</enabled><name>ERRORS</name></field><field><id>INPUT_BUFFER_ROWS</id><enabled>Y</enabled><name>INPUT_BUFFER_ROWS</name></field><field><id>OUTPUT_BUFFER_ROWS</id><enabled>Y</enabled><name>OUTPUT_BUFFER_ROWS</name></field></perf-log-table>
 <channel-log-table><connection/>
 <schema/>
@@ -4048,7 +4057,7 @@ public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws K
            <schema_name/>
            </partitioning>
     <connection>__postgres_db__</connection>
-    <commit>100</commit> 
+    <commit>100</commit>
     <tablename_in_field>N</tablename_in_field>
     <tablename_field/>
     <use_batch>N</use_batch>

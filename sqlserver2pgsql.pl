@@ -1832,7 +1832,7 @@ EOF
                 next;
             }
 
-            elsif ($propertyname eq 'MS_Description')
+            elsif ($propertyname eq 'MS_Description' || $propertyname eq 'MS_SSMA_SOURCE')
             {
 
                 # This is a comment. We parse it.

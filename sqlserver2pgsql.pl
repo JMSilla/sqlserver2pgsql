@@ -334,8 +334,6 @@ sub sql_convert_column
     my ($colname,$coltype)=@_;
     my %functions = (
         'uuid' => 'lower({colname})',
-        'date' => 'convert(varchar(50), {colname}, 120)',
-        'timestamp with time zone(7)' => 'convert(varchar(50), {colname}, 121)',
         'xml' => 'case when datalength({colname}) > 5 then {colname} else null end');
     if (defined ($functions{$coltype}))
     {
@@ -972,13 +970,7 @@ sub generate_kettle
     {
         foreach my $cast (keys %{$objects->{CASTS}})
         {
-            if ($objects->{CASTS}->{$cast} eq "C")
-            {
-                $beforescript.= "DROP CAST IF EXISTS &#x28;varchar as $cast&#x29;;\n";
-                $beforescript.= "CREATE CAST &#x28;varchar as $cast&#x29; with inout as implicit;\n";
-                $afterscript.= "DROP CAST &#x28;varchar as $cast&#x29;;\n";
-            }
-            elsif ($objects->{CASTS}->{$cast} eq "S")
+            if ($objects->{CASTS}->{$cast} eq "S")
             {
                 $beforescript.= "UPDATE pg_cast SET castcontext='i' WHERE castsource='character varying'::regtype AND casttarget='$cast'::regtype;\n";
                 $afterscript.= "UPDATE pg_cast SET castcontext='e' WHERE castsource='character varying'::regtype AND casttarget='$cast'::regtype;\n";
@@ -1725,6 +1717,7 @@ EOF
             # Ignore constraint if NOCHECK
             if ($nocheck)
             {
+              print STDERR "Warning: NOCHECK constraint <$consname> on table <$table> ignored.\n";
               while (my $fk = read_and_clean($file))
               {
                 if ($fk =~ /^GO/)

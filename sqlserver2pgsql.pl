@@ -722,6 +722,9 @@ sub generate_kettle
             my @pgcolsdef;
             foreach my $col (
                 sort {
+					         scalar(grep { /^$b$/ } @{$refschema->{TABLES}->{$table}->{PK}->{COLS}})
+					              <=> scalar(grep { /^$a$/ } @{$refschema->{TABLES}->{$table}->{PK}->{COLS}})
+					         ||
                     $refschema->{TABLES}->{$table}->{COLS}->{$a}->{POS}
                         <=> $refschema->{TABLES}->{$table}->{COLS}->{$b}
                         ->{POS}
@@ -1819,7 +1822,7 @@ EOF
                 or die
                 "Cannot find a name for this extended property: $sqlproperty";
             my $propertyname = $1;
-            if ($propertyname =~ /^(MS_DiagramPaneCount|MS_DiagramPane1|Display Name|Description|Example Values|Source System|Table Description|Table Type|ETL Rules|Display Folder|SCD  Type|Source Datatype)$/)
+            if ($propertyname =~ /^(MS_DiagramPaneCount|MS_DiagramPane1|Display Name|Description|Example Values|Source System|Table Description|Table Type|ETL Rules|Display Folder|SCD  Type|Source Datatype|AllowZeroLength)$/)
             {
                 # We don't dump these. They are graphical descriptions of the GUI
                 next;
@@ -2109,6 +2112,9 @@ sub generate_schema
             my @colsdef;
             foreach my $col (
                 sort {
+                    scalar(grep { /^$b$/ } @{$refschema->{TABLES}->{$table}->{PK}->{COLS}})
+                      <=> scalar(grep { /^$a$/ } @{$refschema->{TABLES}->{$table}->{PK}->{COLS}})
+                    ||
                     $refschema->{TABLES}->{$table}->{COLS}->{$a}->{POS}
                         <=> $refschema->{TABLES}->{$table}->{COLS}->{$b}
                         ->{POS}
